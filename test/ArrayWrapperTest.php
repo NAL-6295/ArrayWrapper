@@ -78,28 +78,28 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 	{
 		$target = new ArrayWrapper(
 				array(
-					array("key" => 2,"value" => 10),
-					array("key" => 2,"value" => 11),
-					array("key" => 3,"value" => 12),
-					array("key" => 3,"value" => 13),
-					array("key" => 5,"value" => 14)	
+					array("id" => 2,"value" => 10),
+					array("id" => 2,"value" => 11),
+					array("id" => 3,"value" => 12),
+					array("id" => 3,"value" => 13),
+					array("id" => 5,"value" => 14)	
 				)
 			);
 
 		$actual = $target
-				->groupBy(array("key"))
+				->groupBy(array("id"))
 				->toVar();
 		$expected = array(
-				array("keys" => array("key" => 2),"values" => array(
-					array("key" => 2,"value" => 10),
-					array("key" => 2,"value" => 11)
+				array("keys" => array("id" => 2),"values" => array(
+					array("id" => 2,"value" => 10),
+					array("id" => 2,"value" => 11)
 					)),
-				array("keys" => array("key" => 3),"values" => array(
-					array("key" => 3,"value" => 12),
-					array("key" => 3,"value" => 13),
+				array("keys" => array("id" => 3),"values" => array(
+					array("id" => 3,"value" => 12),
+					array("id" => 3,"value" => 13),
 					)),
-				array("keys" => array("key" => 5),"values" => array(
-					array("key" => 5,"value" => 14)	
+				array("keys" => array("id" => 5),"values" => array(
+					array("id" => 5,"value" => 14)	
 					))
 				);					
 		$this->assertEquals(json_encode($expected),json_encode($actual));
@@ -139,15 +139,16 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 				array("keys" => array("key" => 2),"value" => 21),
 				array("keys" => array("key" => 3),"value" => 25),
 				array("keys" => array("key" => 5),"value" => 14)
-				);					
+				);			
+
 		$this->assertEquals(json_encode($expected),json_encode($actual));
 	}
 	public function testJoin()
 	{
-		$leftArray =	array(
-					array("key" => 2,"name" => "鼻毛きり"),
-					array("key" => 3,"name" => "はさみ"),
-					array("key" => 5,"name" => "包丁")	
+		$leftArray = array(
+					array("key" => 2,"name" => "Nasal Hair Cutter"),
+					array("key" => 3,"name" => "scissors"),
+					array("key" => 5,"name" => "knife")	
 				);
 
 		$rightArray = array(
@@ -177,13 +178,13 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 				->toVar();
 
 		$expected = array(
-					array("item_id" => 2,"name" => "鼻毛きり","value" => 10),
-					array("item_id" => 2,"name" => "鼻毛きり","value" => 20),
-					array("item_id" => 2,"name" => "鼻毛きり","value" => 30),
-					array("item_id" => 3,"name" => "はさみ","value" => 40),
-					array("item_id" => 3,"name" => "はさみ","value" => 50),
-					array("item_id" => 5,"name" => "包丁","value" => 60),
-					array("item_id" => 5,"name" => "包丁","value" => 70),
+					array("item_id" => 2,"name" => "Nasal Hair Cutter","value" => 10),
+					array("item_id" => 2,"name" => "Nasal Hair Cutter","value" => 20),
+					array("item_id" => 2,"name" => "Nasal Hair Cutter","value" => 30),
+					array("item_id" => 3,"name" => "scissors","value" => 40),
+					array("item_id" => 3,"name" => "scissors","value" => 50),
+					array("item_id" => 5,"name" => "knife","value" => 60),
+					array("item_id" => 5,"name" => "knife","value" => 70),
 				);					
 		$this->assertEquals(json_encode($expected),json_encode($actual));
 		
