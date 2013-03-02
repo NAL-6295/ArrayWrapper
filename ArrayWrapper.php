@@ -25,63 +25,6 @@ class ArrayWrapper
 		$this->_source = $source;
 	}
 
-	private function _addNewGroup($keyList,$value){
-		foreach($keyList as $groupKey){
-			$groupKeys[$groupKey] = $value[$groupKey];
-		}
-		return array("keys" => $groupKeys,"values" => array($value));
-	}
-	private function _isFoundGroup($keyList,$groups,$value){
-		foreach($groups as &$group){
-			$isMatch = true;
-			foreach($keyList as $groupKey){
-				if($group["keys"][$groupKey] != $value[$groupKey]){
-					$isMatch = false;
-					break;
-				}	
-
-			}
-			if($isMatch){
-				array_push(&$group["values"],$value);
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	private function _grouping($groups,$value,$keySelector){
-		if(count($groups) == 0){
-
-			$groups[] = $this->_addNewGroup($keySelector,$value);		
-
-		}else{
-
-			if(!$this->_isFoundGroup($keySelector,&$groups,$value)){
-				$groups[] = $this->_addNewGroup($keySelector,$value);		
-			}
-		} 
-	}
-
-
-	private function _join($newArray,$leftValue,$joinInfo){
-		$rightValues = $joinInfo["right"];
-		$leftKey = $joinInfo["leftKey"];
-		$rightKey = $joinInfo["rightKey"];
-		$map = $joinInfo["map"];
-		foreach ($rightValues as $rightValue) {
-			$isSame = true;
-			for($i = 0;$i < count($leftKey);$i++){
-				if($leftValue[$leftKey[$i]] != $rightValue[$rightKey[$i]] ){
-					$isSame = false;
-					break;
-				}
-			}
-			if($isSame){
-				array_push($newArray,$map($leftValue,$rightValue));
-			}
-		}
-	}
-
 	private function compare($left,$right,$keys)
 	{
 		foreach($keys as $key){
@@ -100,6 +43,93 @@ class ArrayWrapper
 		}
 		return 0;
 	}
+
+
+	private function _addNewGroup($keyList,$value){
+		foreach($keyList as $groupKey){
+			$groupKeys[$groupKey["key"]] = $value[$groupKey["key"]];
+		}
+		return array("keys" => $groupKeys,"values" => array($value));
+	}	
+	
+	private function _grouping(&$groups,$value,$groupKeys){
+		$arrayCount = count($groups);
+		if($arrayCount == 0){
+			$groups[] = $this->_addNewGroup($groupKeys,$value);		
+			return;
+		}
+
+		$start = 0;
+
+		$target = floor($arrayCount / 2);
+		while(true)
+		{
+			$arrayValue = $groups[$target];
+			switch (self::compare($arrayValue["keys"],$value,$groupKeys)) 
+			{
+				case -1:
+					if($target - $start > 1)
+					{
+						$target = $target - floor(($target - $start) / 2);
+					}
+					else if(self::compare($groups[$start]["keys"],$value,$groupKeys) == -1)
+					{
+						array_splice($groups,$start,0,array($this->_addNewGroup($groupKeys,$value)));
+						return;
+					}
+					else
+					{
+						array_splice($groups,$target,0,array($this->_addNewGroup($groupKeys,$value)));
+						return;							
+					}
+					break;
+				case 0;	
+					array_push($groups[$target]["values"],$value);
+					return;
+					break;
+				default:
+					if($arrayCount - $target > 1)
+					{
+						$start = $target;
+						$target = $target + floor(($arrayCount - $target) /2); 
+					}
+					else if(self::compare($groups[$arrayCount -1]["keys"],$value,$groupKeys) == -1)
+					{
+						array_splice($groups,$arrayCount -1,0,array($this->_addNewGroup($groupKeys,$value)));
+						return;
+					}
+					else
+					{
+						array_push($groups,$this->_addNewGroup($groupKeys,$value));
+						return;							
+					}
+					break;
+			}			
+		}
+
+	}
+
+
+	private function _join(&$newArray,$leftValue,$joinInfo){
+		$rightValues = $joinInfo["right"];
+		$leftKey = $joinInfo["leftKey"];
+		$rightKey = $joinInfo["rightKey"];
+		$map = $joinInfo["map"];
+		foreach ($rightValues as $rightValue) {
+			$isSame = true;
+			for($i = 0;$i < count($leftKey);$i++){
+				if($leftValue[$leftKey[$i]] != $rightValue[$rightKey[$i]] ){
+					$isSame = false;
+					break;
+				}
+			}
+			if($isSame){
+				array_push($newArray,$map($leftValue,$rightValue));
+			}
+		}
+	}
+
+
 
 
 	private function _orderBy(&$newArray,$value,$orderKeys)
@@ -186,13 +216,13 @@ class ArrayWrapper
 					$reduceResult = $function["value"]($reduceResult,$value);
 					$isReduce = true;
 				}else if($function["key"] == arrayWrapper::GROUP_BY){
-					$this->_grouping(&$groups,$value,$function["value"]);
+					$this->_grouping($groups,$value,$function["value"]);
 				}else if($function["key"] == ArrayWrapper::JOIN){
 					$isExcept = true;
-					$this->_join(&$newArray,$value,$function["value"]);
+					$this->_join($newArray,$value,$function["value"]);
 				}else if($function["key"] == ArrayWrapper::ORDER_BY){
 					$isExcept = true;
-					$this->_orderBy(&$newArray,$value,$function["value"]);
+					$this->_orderBy($newArray,$value,$function["value"]);
 				}
 			}
 			if(!$isExcept){
@@ -229,7 +259,14 @@ class ArrayWrapper
 		if(!is_array($keys)){
 			throw new Exception("$keys is not array.");
 		}
-		$this->_functions[] = array("key" => arrayWrapper::GROUP_BY,"value" => $keys);
+
+		foreach($keys as $key)
+		{
+			$groupKeys[] = array("key" => $key,"desc" => false);
+		}
+
+
+		$this->_functions[] = array("key" => arrayWrapper::GROUP_BY,"value" => $groupKeys);
 		return new ArrayWrapper($this->toVar());
 	}
 
