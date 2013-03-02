@@ -8,8 +8,24 @@ where,select,reduce,orderBy,groupBy,join(inner join相当)ができるように�
 -----
 ArrayWrapperクラスのインスタンスを生成する時に、操作したい配列を与えることで、ラッピングされます。
 
-```PHP
+```php
  $arrayVariable = array(1,2,3,4,5,6,7,8,9,10);
- $query = new ArrayWrapper($arrayVariable);
- 
+ $wrapper = new ArrayWrapper($arrayVariable);
 ```
+
+それぞれのメソッドの使い方を下に示していきます。
+
+where
+----
+
+```php
+	$arrayVariable = array(1,2,3,4,5,6,7,8,9,10);
+	$target = new ArrayWrapper($arrayVariable);
+
+	$actual = $target
+				->where(function($x){return $x > 5;})
+				->toVar();
+	
+	$expected = array(6,7,8,9,10);
+```
+
