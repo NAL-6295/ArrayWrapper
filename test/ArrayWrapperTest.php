@@ -6,36 +6,36 @@ use NAL_6295\Collections\ArrayWrapper;
 
 class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 {
-	public function testFilter()
+	public function testWhere()
 	{	
 		$target = new ArrayWrapper(array(1,2,3,4,5,6,7,8,9,10));	
-		$actual = $target->filter(function($x){return $x > 5;})->toVar();
+		$actual = $target->where(function($x){return $x > 5;})->toVar();
 		$expected = array(6,7,8,9,10);
 		$this->assertEquals(json_encode($expected),json_encode($actual));
 	}
-	public function testMap()
+	public function testSelect()
 	{	
 		$target = new ArrayWrapper(array(1,2,3,4,5,6,7,8,9,10));	
-		$actual = $target->map(function($x){return $x *2;})->toVar();
+		$actual = $target->select(function($x){return $x *2;})->toVar();
 		$expected = array(2,4,6,8,10,12,14,16,18,20);
 		$this->assertEquals(json_encode($expected),json_encode($actual));
 	}
-	public function testFilterMap()
+	public function testWhereSelect()
 	{	
 		$target = new ArrayWrapper(array(1,2,3,4,5,6,7,8,9,10));	
 		$actual = $target
-				->filter(function($x){return $x > 5;})
-				->map(function($x){return $x *2;})->toVar();
+				->where(function($x){return $x > 5;})
+				->select(function($x){return $x *2;})->toVar();
 		$expected = array(12,14,16,18,20);
 		$this->assertEquals(json_encode($expected),json_encode($actual));
 	}
-	public function testFilterMapFilter()
+	public function testWhereSelectWhere()
 	{	
 		$target = new ArrayWrapper(array(1,2,3,4,5,6,7,8,9,10));	
 		$actual = $target
-				->filter(function($x){return $x > 5;})
-				->map(function($x){return $x *2;})
-				->filter(function($x){return $x > 12;})
+				->where(function($x){return $x > 5;})
+				->select(function($x){return $x *2;})
+				->where(function($x){return $x > 12;})
 				->toVar();
 		$expected = array(14,16,18,20);
 		$this->assertEquals(json_encode($expected),json_encode($actual));
@@ -44,8 +44,8 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 	{	
 		$target = new ArrayWrapper(array(1,2,3,4,5,6,7,8,9,10));	
 		$actual = $target
-				->filter(function($x){return $x > 5;})
-				->map(function($x){return $x *2;})
+				->where(function($x){return $x > 5;})
+				->select(function($x){return $x *2;})
 				->reduce(function($x,$y){return $x + $y;});
 		$expected = 80;
 		$this->assertEquals($expected,$actual);
@@ -63,9 +63,9 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 			);
 
 		$actual = $target
-				->filter(function($x){return $x["key"] > 2;})
-				->map(function($x){return array("K" => $x["key"],"V" => $x["value"] * 2);})
-				->filter(function($x){return $x["K"] > 3;})
+				->where(function($x){return $x["key"] > 2;})
+				->select(function($x){return array("K" => $x["key"],"V" => $x["value"] * 2);})
+				->where(function($x){return $x["K"] > 3;})
 				->toVar();
 		$expected = array(
 				array("K" => 4,"V" => 26),
@@ -121,7 +121,7 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 			);
 		$actual = $target
 				->groupBy(array("key"))
-				->map(function($x){
+				->select(function($x){
 									$target =    new ArrayWrapper($x["values"]);
 									$value = $target->reduce(
 														function($summary,$y)

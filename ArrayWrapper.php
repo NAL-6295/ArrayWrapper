@@ -3,8 +3,14 @@
 namespace NAL_6295\Collections;
 
 use Exception;
-//配列をラッピングしてmap,reduce,filter,group処理を行います。
-//group,reduce,toVarでラッピングが外れます。
+
+/**
+ * ArrayWrapperクラス
+ * 
+ * 配列をラッピングしてmap,reduce,filter,groupBy,orderBy,joinを行う。
+ * toVar及びreduceを呼ぶまでは実行されません。  
+ * 例外として、groupBy,orderByのみ実行した結果をArrayWrapperで返します。
+ */
 class ArrayWrapper 
 {
 
@@ -18,6 +24,10 @@ class ArrayWrapper
 	const JOIN = 4;
 	const ORDER_BY = 5;
 
+	/**
+	*	コンストラクタ
+	*	@param array $source ラップしたい配列もしくは連想配列
+	**/
 	function __construct($source){
 		if(!is_array($source)){
 			throw new Exception("$source is not array.");
@@ -25,6 +35,10 @@ class ArrayWrapper
 		$this->_source = $source;
 	}
 
+	/**
+	*   配列同士のコンペア
+	*   groupBy,orderByで利用
+	**/
 	private function compare($left,$right,$keys)
 	{
 		foreach($keys as $key){
@@ -44,7 +58,10 @@ class ArrayWrapper
 		return 0;
 	}
 
-
+	/**
+	* groupBy時に新しいgroupを作成する。
+	*
+	**/
 	private function _addNewGroup($keyList,$value){
 		foreach($keyList as $groupKey){
 			$groupKeys[$groupKey["key"]] = $value[$groupKey["key"]];
@@ -52,6 +69,10 @@ class ArrayWrapper
 		return array("keys" => $groupKeys,"values" => array($value));
 	}	
 	
+	/**
+	* groupBy処理
+	*
+	**/
 	private function _grouping(&$groups,$value,$groupKeys){
 		$arrayCount = count($groups);
 		if($arrayCount == 0){
@@ -106,10 +127,12 @@ class ArrayWrapper
 					break;
 			}			
 		}
-
 	}
 
-
+	/**
+	* 配列同士をjoinする処理
+	*　inner joinのみ対応
+	**/
 	private function _join(&$newArray,$leftValue,$joinInfo){
 		$rightValues = $joinInfo["right"];
 		$leftKey = $joinInfo["leftKey"];
@@ -129,9 +152,10 @@ class ArrayWrapper
 		}
 	}
 
-
-
-
+	/**
+	* OrderBy処理
+	*
+	**/
 	private function _orderBy(&$newArray,$value,$orderKeys)
 	{
 
@@ -192,6 +216,10 @@ class ArrayWrapper
 
 	}
 
+	/**
+	* 積み上げられた処理を行い、配列を返す
+	*
+	**/
 	public function toVar(){
 		
 		$reduceResult = 0;
@@ -239,7 +267,12 @@ class ArrayWrapper
 		return $newArray;
 	}
 	
-	public function filter($predicate){
+	/**
+	* where処理の登録
+	*
+	* @param lambda $predicate function(配列要素){return 要素が対象かどうかの処理}
+	**/
+	public function where($predicate){
 		if(!is_callable($predicate)){
 			throw new Exception("$predicate is not function.");
 		}
@@ -247,7 +280,12 @@ class ArrayWrapper
 		return $this;
 	}
 
-	public function map($mapper){
+	/**
+	* select処理の登録
+	*
+	* @param lambda $mapper function(配列要素){return 加工した要素}
+	**/
+	public function select($mapper){
 		if(!is_callable($mapper)){
 			throw new Exception("$mapper is not function.");
 		}
@@ -255,6 +293,12 @@ class ArrayWrapper
 		return $this;
 	}
 
+	/**
+	* groupBy処理の登録
+	* キー名を登録する必要がある。
+	* 
+	* @param array(string) $keys キー名の配列
+	**/
 	public function groupBy($keys){
 		if(!is_array($keys)){
 			throw new Exception("$keys is not array.");
@@ -270,6 +314,11 @@ class ArrayWrapper
 		return new ArrayWrapper($this->toVar());
 	}
 
+	/**
+	* reduce処理の登録
+	*
+	* @param lambda $reducer function(配列要素){return 加工した要素}
+	**/
 	public function reduce($reducer){
 		if(!is_callable($reducer)){
 			throw new Exception("$reducer is not function.");
@@ -278,6 +327,14 @@ class ArrayWrapper
 		return $this->toVar();
 	}
 
+	/**
+	* join処理の登録
+	*
+	* @param array $right 結合する配列
+	* @param array $leftKey 元の配列の結合キー
+	* @param array $rightKey 結合する配列の結合キー
+	* @param lambda $map 結合結果についてのマップ処理 function(元配列の要素、結合する配列の要素){return 結合する要素}
+	**/
 	public function join($right,$leftKey,$rightKey,$map){
 #region "事前条件"
 		if(!is_array($right)){
