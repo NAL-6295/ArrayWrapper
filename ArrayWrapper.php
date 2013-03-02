@@ -315,7 +315,7 @@ class ArrayWrapper
 	}
 
 	/**
-	* reduce処理の登録
+	* reduce処理の登録と実行
 	*
 	* @param lambda $reducer function(配列要素){return 加工した要素}
 	**/
@@ -328,7 +328,7 @@ class ArrayWrapper
 	}
 
 	/**
-	* join処理の登録
+	* join処理の登録と実行
 	*
 	* @param array $right 結合する配列
 	* @param array $leftKey 元の配列の結合キー
@@ -367,7 +367,13 @@ class ArrayWrapper
 		return new ArrayWrapper($this->toVar());
 	}
 
-	 public function orderBy($orderKey)
+	/**
+	*  orderBy処理の登録と実行
+	*
+	* @param array $orderKey ソート順を示す("key" => "並び替えしたいキー","desc" => true or false(降順ならtrue))
+	*						 の配列
+	**/
+	public function orderBy($orderKey)
 	{
 		$this->_functions[] = array("key" => ArrayWrapper::ORDER_BY,
 									"value" => $orderKey);
