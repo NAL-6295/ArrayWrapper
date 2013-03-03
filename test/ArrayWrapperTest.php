@@ -108,7 +108,7 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 
 	}
 
-	public function testGroupBySum()
+	public function testGroupBySumAverage()
 	{
 		$target = new ArrayWrapper(
 				array(
@@ -121,28 +121,26 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 			);
 		$actual = $target
 				->groupBy(array("key"))
-				->select(function($x){
-									$target =    new ArrayWrapper($x["values"]);
-									$value = $target->reduce(
-														function($summary,$y)
-														{
-															return $summary + $y["value"];
-														}
-												);
-
-									 return array("keys" => $x["keys"],
-												"value" => $value);
-								   }
-					)
+				->select
+				(
+					function($x)
+					{
+						$target = new ArrayWrapper($x["values"]);
+						return array("keys" => $x["keys"],
+									"value" => $target->sum("value"),
+									"avg" => $target->average("value"));
+				   }
+				)
 				->toVar();
 		$expected = array(
-				array("keys" => array("key" => 2),"value" => 21),
-				array("keys" => array("key" => 3),"value" => 25),
-				array("keys" => array("key" => 5),"value" => 14)
+				array("keys" => array("key" => 2),"value" => 21 ,"avg" => 10.5),
+				array("keys" => array("key" => 3),"value" => 25 ,"avg" => 12.5),
+				array("keys" => array("key" => 5),"value" => 14 ,"avg" => 14)
 				);			
 
 		$this->assertEquals(json_encode($expected),json_encode($actual));
 	}
+
 	public function testJoin()
 	{
 		$leftArray = array(

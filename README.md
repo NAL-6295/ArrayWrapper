@@ -141,7 +141,7 @@ $expected = array(
 		);	
 ```
 
-(Hash)groupBy -> select(summary group values)
+(Hash)groupBy->sum,average
 -----
 
 ```php
@@ -154,32 +154,28 @@ $expected = array(
 				array("key" => 5,"value" => 14)	
 			)
 		);
-
 	$actual = $target
 			->groupBy(array("key"))
-			->select(function($x){
-				$target =  new ArrayWrapper($x["values"]);
-				$value = $target->reduce(
-							function($summary,$y)
-							{
-								return $summary + $y["value"];
-							}
-						);
-
-				 return array("keys" => $x["keys"],"value" => $value);
+			->select
+			(
+				function($x)
+				{
+					$target = new ArrayWrapper($x["values"]);
+					return array("keys" => $x["keys"],
+								"value" => $target->sum("value"),
+								"avg" => $target->average("value"));
 			   }
 			)
 			->toVar();
-
 	$expected = array(
-			array("keys" => array("key" => 2),"value" => 21),
-			array("keys" => array("key" => 3),"value" => 25),
-			array("keys" => array("key" => 5),"value" => 14)
-		);			
-
+			array("keys" => array("key" => 2),"value" => 21 ,"avg" => 10.5),
+			array("keys" => array("key" => 3),"value" => 25 ,"avg" => 12.5),
+			array("keys" => array("key" => 5),"value" => 14 ,"avg" => 14)
+			);			
 ```
 
-join
+
+(Hash)join
 -----
 
 ```php
@@ -226,7 +222,7 @@ join
 			);					
 ```
 
-orderBy
+(Hash)orderBy
 -----
 
 ```php
@@ -254,7 +250,7 @@ orderBy
 
 ```
 
-orderBy(composite keys)
+(Hash)orderBy(composite keys)
 -----
 
 ```php
@@ -283,3 +279,5 @@ orderBy(composite keys)
 				array("key" => 1,"key2" => 3,"value" => 13)
 			);	
 ```
+
+

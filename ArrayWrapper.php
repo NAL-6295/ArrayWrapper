@@ -24,6 +24,10 @@ class ArrayWrapper
 	const JOIN = 4;
 	const ORDER_BY = 5;
 
+	const KEY = "key";
+	const DESC = "desc";
+	const GROUP_KEYS = "keys";
+	const GROUP_VALUES = "values";
 	/**
 	*	コンストラクタ
 	*	@param array $source ラップしたい配列もしくは連想配列
@@ -42,13 +46,13 @@ class ArrayWrapper
 	private function compare($left,$right,$keys)
 	{
 		foreach($keys as $key){
-			if($left[$key["key"]] > $right[$key["key"]]){
-				if($key["desc"] == false){
+			if($left[$key[self::KEY]] > $right[$key[self::KEY]]){
+				if($key[self::DESC] == false){
 					return -1;
 				}
 				return 1;
-			}elseif($left[$key["key"]] < $right[$key["key"]]){
-				if($key["desc"] == true){
+			}elseif($left[$key[self::KEY]] < $right[$key[self::KEY]]){
+				if($key[self::DESC] == true){
 					return -1;
 					break;
 				}
@@ -64,9 +68,9 @@ class ArrayWrapper
 	**/
 	private function _addNewGroup($keyList,$value){
 		foreach($keyList as $groupKey){
-			$groupKeys[$groupKey["key"]] = $value[$groupKey["key"]];
+			$groupKeys[$groupKey[self::KEY]] = $value[$groupKey[self::KEY]];
 		}
-		return array("keys" => $groupKeys,"values" => array($value));
+		return array(self::GROUP_KEYS => $groupKeys,self::GROUP_VALUES => array($value));
 	}	
 	
 	/**
@@ -86,14 +90,14 @@ class ArrayWrapper
 		while(true)
 		{
 			$arrayValue = $groups[$target];
-			switch (self::compare($arrayValue["keys"],$value,$groupKeys)) 
+			switch (self::compare($arrayValue[self::GROUP_KEYS],$value,$groupKeys)) 
 			{
 				case -1:
 					if($target - $start > 1)
 					{
 						$target = $target - floor(($target - $start) / 2);
 					}
-					else if(self::compare($groups[$start]["keys"],$value,$groupKeys) == -1)
+					else if(self::compare($groups[$start][self::GROUP_KEYS],$value,$groupKeys) == -1)
 					{
 						array_splice($groups,$start,0,array($this->_addNewGroup($groupKeys,$value)));
 						return;
@@ -105,7 +109,7 @@ class ArrayWrapper
 					}
 					break;
 				case 0;	
-					array_push($groups[$target]["values"],$value);
+					array_push($groups[$target][self::GROUP_VALUES],$value);
 					return;
 					break;
 				default:
@@ -114,7 +118,7 @@ class ArrayWrapper
 						$start = $target;
 						$target = $target + floor(($arrayCount - $target) /2); 
 					}
-					else if(self::compare($groups[$arrayCount -1]["keys"],$value,$groupKeys) == -1)
+					else if(self::compare($groups[$arrayCount -1][self::GROUP_KEYS],$value,$groupKeys) == -1)
 					{
 						array_splice($groups,$arrayCount -1,0,array($this->_addNewGroup($groupKeys,$value)));
 						return;
@@ -233,22 +237,22 @@ class ArrayWrapper
 		foreach($this->_source as $value){
 			$isExcept = false;
 			foreach($this->_functions as $function){
-				if($function["key"] == arrayWrapper::FILTER){
+				if($function[self::KEY] == arrayWrapper::FILTER){
 					if(!$function["value"]($value)){
 						$isExcept = true;
 						break;
 					}
-				}else if($function["key"] == arrayWrapper::MAP){
+				}else if($function[self::KEY] == arrayWrapper::MAP){
 					$value = $function["value"]($value);
-				}else if($function["key"] == arrayWrapper::REDUCE){
+				}else if($function[self::KEY] == arrayWrapper::REDUCE){
 					$reduceResult = $function["value"]($reduceResult,$value);
 					$isReduce = true;
-				}else if($function["key"] == arrayWrapper::GROUP_BY){
+				}else if($function[self::KEY] == arrayWrapper::GROUP_BY){
 					$this->_grouping($groups,$value,$function["value"]);
-				}else if($function["key"] == ArrayWrapper::JOIN){
+				}else if($function[self::KEY] == ArrayWrapper::JOIN){
 					$isExcept = true;
 					$this->_join($newArray,$value,$function["value"]);
-				}else if($function["key"] == ArrayWrapper::ORDER_BY){
+				}else if($function[self::KEY] == ArrayWrapper::ORDER_BY){
 					$isExcept = true;
 					$this->_orderBy($newArray,$value,$function["value"]);
 				}
@@ -258,6 +262,7 @@ class ArrayWrapper
 			}
 		}	
 		if($isReduce){
+			array_pop($this->_functions);
 			return $reduceResult;
 		}
 		if(count($groups) != 0){
@@ -276,7 +281,7 @@ class ArrayWrapper
 		if(!is_callable($predicate)){
 			throw new Exception("$predicate is not function.");
 		}
-		$this->_functions[] = array("key" => arrayWrapper::FILTER,"value" => $predicate);
+		$this->_functions[] = array(self::KEY => arrayWrapper::FILTER,"value" => $predicate);
 		return $this;
 	}
 
@@ -289,7 +294,7 @@ class ArrayWrapper
 		if(!is_callable($mapper)){
 			throw new Exception("$mapper is not function.");
 		}
-		$this->_functions[] = array("key" => arrayWrapper::MAP,"value" => $mapper);
+		$this->_functions[] = array(self::KEY => arrayWrapper::MAP,"value" => $mapper);
 		return $this;
 	}
 
@@ -306,11 +311,11 @@ class ArrayWrapper
 
 		foreach($keys as $key)
 		{
-			$groupKeys[] = array("key" => $key,"desc" => false);
+			$groupKeys[] = array(self::KEY => $key,self::DESC => false);
 		}
 
 
-		$this->_functions[] = array("key" => arrayWrapper::GROUP_BY,"value" => $groupKeys);
+		$this->_functions[] = array(self::KEY => arrayWrapper::GROUP_BY,"value" => $groupKeys);
 		return new ArrayWrapper($this->toVar());
 	}
 
@@ -323,7 +328,7 @@ class ArrayWrapper
 		if(!is_callable($reducer)){
 			throw new Exception("$reducer is not function.");
 		}
-		$this->_functions[] = array("key" => arrayWrapper::REDUCE,"value" => $reducer);
+		$this->_functions[] = array(self::KEY => arrayWrapper::REDUCE,"value" => $reducer);
 		return $this->toVar();
 	}
 
@@ -357,7 +362,7 @@ class ArrayWrapper
 			throw new Exception("$map is not function");
 		}
 #end region
-		$this->_functions[] = array("key" => ArrayWrapper::JOIN,
+		$this->_functions[] = array(self::KEY => ArrayWrapper::JOIN,
 									"value" => array(
 												"right" => $right ,
 												"leftKey" => $leftKey,
@@ -370,14 +375,48 @@ class ArrayWrapper
 	/**
 	*  orderBy処理の登録と実行
 	*
-	* @param array $orderKey ソート順を示す("key" => "並び替えしたいキー","desc" => true or false(降順ならtrue))
+	* @param array $orderKey ソート順を示す(self::KEY => "並び替えしたいキー",self::DESC => true or false(降順ならtrue))
 	*						 の配列
 	**/
 	public function orderBy($orderKey)
 	{
-		$this->_functions[] = array("key" => ArrayWrapper::ORDER_BY,
+		$this->_functions[] = array(self::KEY => ArrayWrapper::ORDER_BY,
 									"value" => $orderKey);
 		return new ArrayWrapper($this->toVar());
+	}
+
+	/**
+	*	配列の特定のキーの値を合計
+	*
+	*	@param string $targetKeyName
+	**/
+	public function sum($targetKeyName)
+	{
+		$sumFunc = function($x,$y)
+				use($targetKeyName)
+				{
+					return $x + $y[$targetKeyName];
+				};
+
+		return $this->reduce($sumFunc);
+	}
+
+	/**
+	*	配列の特定のキーの値の算術平均(means)を出す
+	*
+	*	@param string $targetKeyName
+	**/
+	public function average($targetKeyName)
+	{
+		$sumFunc = function($x,$y)
+				use($targetKeyName)
+				{
+					return $x + $y[$targetKeyName];
+				};
+
+		$value = $this->reduce($sumFunc);
+		$count = count($this->_source);
+		return $value / $count;
 	}
 }
 ?>
