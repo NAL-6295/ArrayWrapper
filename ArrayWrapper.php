@@ -1,6 +1,7 @@
 <?php
-
 namespace NAL_6295\Collections;
+
+require_once 'OperationType.php';
 
 use Exception;
 
@@ -16,13 +17,6 @@ class ArrayWrapper
 
 	private $_source = null;
 	private $_functions = null;
-
-	const FILTER = 0;
-	const MAP = 1;
-	const REDUCE = 2;
-	const GROUP_BY = 3;
-	const JOIN = 4;
-	const ORDER_BY = 5;
 
 	const KEY = "key";
 	const DESC = "desc";
@@ -237,22 +231,22 @@ class ArrayWrapper
 		foreach($this->_source as $value){
 			$isExcept = false;
 			foreach($this->_functions as $function){
-				if($function[self::KEY] == arrayWrapper::FILTER){
+				if($function[self::KEY] == OperationType::WHERE){
 					if(!$function["value"]($value)){
 						$isExcept = true;
 						break;
 					}
-				}else if($function[self::KEY] == arrayWrapper::MAP){
+				}else if($function[self::KEY] == OperationType::SELECT){
 					$value = $function["value"]($value);
-				}else if($function[self::KEY] == arrayWrapper::REDUCE){
+				}else if($function[self::KEY] == OperationType::REDUCE){
 					$reduceResult = $function["value"]($reduceResult,$value);
 					$isReduce = true;
-				}else if($function[self::KEY] == arrayWrapper::GROUP_BY){
+				}else if($function[self::KEY] == OperationType::GROUP_BY){
 					$this->_grouping($groups,$value,$function["value"]);
-				}else if($function[self::KEY] == ArrayWrapper::JOIN){
+				}else if($function[self::KEY] == OperationType::JOIN){
 					$isExcept = true;
 					$this->_join($newArray,$value,$function["value"]);
-				}else if($function[self::KEY] == ArrayWrapper::ORDER_BY){
+				}else if($function[self::KEY] == OperationType::ORDER_BY){
 					$isExcept = true;
 					$this->_orderBy($newArray,$value,$function["value"]);
 				}
@@ -281,7 +275,7 @@ class ArrayWrapper
 		if(!is_callable($predicate)){
 			throw new Exception("$predicate is not function.");
 		}
-		$this->_functions[] = array(self::KEY => arrayWrapper::FILTER,"value" => $predicate);
+		$this->_functions[] = array(self::KEY => OperationType::WHERE,"value" => $predicate);
 		return $this;
 	}
 
@@ -294,7 +288,7 @@ class ArrayWrapper
 		if(!is_callable($mapper)){
 			throw new Exception("$mapper is not function.");
 		}
-		$this->_functions[] = array(self::KEY => arrayWrapper::MAP,"value" => $mapper);
+		$this->_functions[] = array(self::KEY => OperationType::SELECT,"value" => $mapper);
 		return $this;
 	}
 
@@ -315,7 +309,7 @@ class ArrayWrapper
 		}
 
 
-		$this->_functions[] = array(self::KEY => arrayWrapper::GROUP_BY,"value" => $groupKeys);
+		$this->_functions[] = array(self::KEY => OperationType::GROUP_BY,"value" => $groupKeys);
 		return new ArrayWrapper($this->toVar());
 	}
 
@@ -328,7 +322,7 @@ class ArrayWrapper
 		if(!is_callable($reducer)){
 			throw new Exception("$reducer is not function.");
 		}
-		$this->_functions[] = array(self::KEY => arrayWrapper::REDUCE,"value" => $reducer);
+		$this->_functions[] = array(self::KEY => OperationType::REDUCE,"value" => $reducer);
 		return $this->toVar();
 	}
 
@@ -362,7 +356,7 @@ class ArrayWrapper
 			throw new Exception("$map is not function");
 		}
 #end region
-		$this->_functions[] = array(self::KEY => ArrayWrapper::JOIN,
+		$this->_functions[] = array(self::KEY => OperationType::JOIN,
 									"value" => array(
 												"right" => $right ,
 												"leftKey" => $leftKey,
@@ -380,7 +374,7 @@ class ArrayWrapper
 	**/
 	public function orderBy($orderKey)
 	{
-		$this->_functions[] = array(self::KEY => ArrayWrapper::ORDER_BY,
+		$this->_functions[] = array(self::KEY => OperationType::ORDER_BY,
 									"value" => $orderKey);
 		return new ArrayWrapper($this->toVar());
 	}
