@@ -1,9 +1,8 @@
 ArrayWrapper for PHP
 ======================
 PHPで一連の配列操作をメソッドチェーンで行うためのラッパクラスです。
-LINQのメソッドチェーンをイメージした使い方ができるようにしています。
-where,select,reduce,orderBy,groupBy,join(inner join相当)ができるようになっています。
-思いつきで書いたプロジェクトなので、1クラスのみで構成されていて若干微妙です。
+.NET FrameworkのLINQのメソッドチェーンをイメージした使い方ができるようにしています。
+where,select,reduce,orderBy,groupBy,join(inner join相当),sum,avgができるようになっています。
 
 使い方
 -----
