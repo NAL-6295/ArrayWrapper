@@ -10,6 +10,7 @@ class OperationType
 	const GROUP_BY = 3;
 	const JOIN = 4;
 	const ORDER_BY = 5;	
+	const ZIP = 6;
 }
 
 ?>

@@ -412,5 +412,41 @@ class ArrayWrapper
 		$count = count($this->_source);
 		return $value / $count;
 	}
+
+	/**
+	* LINQ.Zip相当の実行
+	*
+	* @param array $rightArray 一緒にループする配列
+	* @param lambda $map 結合結果についてのマップ処理 function(元配列の要素、結合する配列の要素){return 結合する要素}
+	**/
+	public function zip($rightArray,$map){
+#region "事前条件"
+		if(!is_array($rightArray)){
+			throw new Exception("$rightArray is not array");
+		}
+
+		if(!is_callable($map)){
+			throw new Exception("$map is not function");
+		}
+#end region
+		
+		$leftArray = $this->toVar();
+
+		$leftCount = count($leftArray);
+		$rightCount = count($rightArray);
+
+		$loopMaxCount = $leftCount > $rightCount ? $rightCount : $leftCount;
+
+		$newArray = array();
+		for ($i=0; $i < $loopMaxCount; $i++) { 
+			$newArray[]  = $map($leftArray[$i],$rightArray[$i]);
+
+		}
+
+		return new ArrayWrapper($newArray);
+	}
+
+
+
 }
 ?>

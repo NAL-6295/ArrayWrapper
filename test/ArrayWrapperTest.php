@@ -247,7 +247,6 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 	public function testOrderByMultiKey()
 	{
 
-
 		$target = new ArrayWrapper(
 				array(
 					array("key" => 2, "key2" => 2,"value" => 10),
@@ -273,6 +272,45 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 				);					
 		$this->assertEquals(json_encode($expected),json_encode($actual));
 
+	}
+
+	public function testZip()
+	{
+		$leftArray = array(
+					array("key" => 2,"name" => "Nasal Hair Cutter"),
+					array("key" => 3,"name" => "scissors"),
+					array("key" => 5,"name" => "knife")	
+				);
+
+		$rightArray = array(
+				array("id" => 1,"item_id" => 2,"value" => 10),
+				array("id" => 2,"item_id" => 2,"value" => 20),
+				array("id" => 3,"item_id" => 2,"value" => 30),
+				array("id" => 4,"item_id" => 3,"value" => 40),
+				array("id" => 5,"item_id" => 3,"value" => 50),
+				array("id" => 6,"item_id" => 5,"value" => 60),
+				array("id" => 7,"item_id" => 5,"value" => 70),
+			);
+
+		$target = new ArrayWrapper($leftArray);
+
+		$actual = $target
+				->zip($rightArray,
+						function ($leftValue,$rightValue)
+						{
+
+							return 
+								array("left" => $leftValue,"right" => $rightValue);
+						})
+				->toVar();
+
+		$expected = array(
+					array("left" => array("key" => 2,"name" => "Nasal Hair Cutter"),"right" => array("id" => 1,"item_id" => 2,"value" => 10)),
+					array("left" => array("key" => 3,"name" => "scissors"),"right" => array("id" => 2,"item_id" => 2,"value" => 20)),
+					array("left" => array("key" => 5,"name" => "knife")	,"right" => array("id" => 3,"item_id" => 2,"value" => 30)),
+				);					
+		$this->assertEquals(json_encode($expected),json_encode($actual));
+		
 	}
 
 }
