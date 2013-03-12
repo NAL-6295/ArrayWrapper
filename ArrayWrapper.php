@@ -22,6 +22,14 @@ class ArrayWrapper
 	const DESC = "desc";
 	const GROUP_KEYS = "keys";
 	const GROUP_VALUES = "values";
+
+	public static function Wrap($source){
+		if(!is_array($source)){
+			throw new Exception("$source is not array.");
+		}
+		return new ArrayWrapper($source);
+	}
+
 	/**
 	*	コンストラクタ
 	*	@param array $source ラップしたい配列もしくは連想配列

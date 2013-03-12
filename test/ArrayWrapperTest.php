@@ -8,21 +8,21 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 {
 	public function testWhere()
 	{	
-		$target = new ArrayWrapper(array(1,2,3,4,5,6,7,8,9,10));	
+		$target = ArrayWrapper::Wrap(array(1,2,3,4,5,6,7,8,9,10));	
 		$actual = $target->where(function($x){return $x > 5;})->toVar();
 		$expected = array(6,7,8,9,10);
 		$this->assertEquals(json_encode($expected),json_encode($actual));
 	}
 	public function testSelect()
 	{	
-		$target = new ArrayWrapper(array(1,2,3,4,5,6,7,8,9,10));	
+		$target = ArrayWrapper::Wrap(array(1,2,3,4,5,6,7,8,9,10));	
 		$actual = $target->select(function($x){return $x *2;})->toVar();
 		$expected = array(2,4,6,8,10,12,14,16,18,20);
 		$this->assertEquals(json_encode($expected),json_encode($actual));
 	}
 	public function testWhereSelect()
 	{	
-		$target = new ArrayWrapper(array(1,2,3,4,5,6,7,8,9,10));	
+		$target = ArrayWrapper::Wrap(array(1,2,3,4,5,6,7,8,9,10));	
 		$actual = $target
 				->where(function($x){return $x > 5;})
 				->select(function($x){return $x *2;})->toVar();
@@ -31,7 +31,7 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 	}
 	public function testWhereSelectWhere()
 	{	
-		$target = new ArrayWrapper(array(1,2,3,4,5,6,7,8,9,10));	
+		$target = ArrayWrapper::Wrap(array(1,2,3,4,5,6,7,8,9,10));	
 		$actual = $target
 				->where(function($x){return $x > 5;})
 				->select(function($x){return $x *2;})
@@ -42,7 +42,7 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 	}
 	public function testReduce()
 	{	
-		$target = new ArrayWrapper(array(1,2,3,4,5,6,7,8,9,10));	
+		$target = ArrayWrapper::Wrap(array(1,2,3,4,5,6,7,8,9,10));	
 		$actual = $target
 				->where(function($x){return $x > 5;})
 				->select(function($x){return $x *2;})
@@ -52,7 +52,7 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 	}	
 	public function testJsonType()
 	{
-		$target = new ArrayWrapper(
+		$target = ArrayWrapper::Wrap(
 				array(
 					array("key" => 1,"value" => 10),
 					array("key" => 2,"value" => 11),
@@ -76,7 +76,7 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 	}
 	public function testGroupBy()
 	{
-		$target = new ArrayWrapper(
+		$target = ArrayWrapper::Wrap(
 				array(
 					array("id" => 2,"value" => 10),
 					array("id" => 2,"value" => 11),
@@ -110,7 +110,7 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 
 	public function testGroupBySumAverage()
 	{
-		$target = new ArrayWrapper(
+		$target = ArrayWrapper::Wrap(
 				array(
 					array("key" => 2,"value" => 10),
 					array("key" => 2,"value" => 11),
@@ -159,7 +159,7 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 				array("id" => 7,"item_id" => 5,"value" => 70),
 			);
 
-		$target = new ArrayWrapper($leftArray);
+		$target = ArrayWrapper::Wrap($leftArray);
 
 		$actual = $target
 				->join($rightArray,
@@ -190,7 +190,7 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 
 	public function testOrderBy()
 	{
-		$target = new ArrayWrapper(
+		$target = ArrayWrapper::Wrap(
 				array(
 					array("key" => 2,"value" => 10),
 					array("key" => 5,"value" => 11),
@@ -218,7 +218,7 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 
 	public function testOrderByDesc()
 	{
-		$target = new ArrayWrapper(
+		$target = ArrayWrapper::Wrap(
 				array(
 					array("key" => 2,"value" => 10),
 					array("key" => 5,"value" => 11),
@@ -247,7 +247,7 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 	public function testOrderByMultiKey()
 	{
 
-		$target = new ArrayWrapper(
+		$target = ArrayWrapper::Wrap(
 				array(
 					array("key" => 2, "key2" => 2,"value" => 10),
 					array("key" => 3,"key2" => 5,"value" => 11),
@@ -292,7 +292,7 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 				array("id" => 7,"item_id" => 5,"value" => 70),
 			);
 
-		$target = new ArrayWrapper($leftArray);
+		$target = ArrayWrapper::Wrap($leftArray);
 
 		$actual = $target
 				->zip($rightArray,
