@@ -2,7 +2,7 @@ ArrayWrapper for PHP
 ======================
 PHPで一連の配列操作をメソッドチェーンで行うためのラッパクラスです。
 .NET FrameworkのLINQのメソッドチェーンをイメージした使い方ができるようにしています。
-where,select,reduce,orderBy,groupBy,join(inner join相当),sum,avgができるようになっています。
+where,select,reduce,orderBy,groupBy,join(inner join,left join),sum,avgができるようになっています。
 
 使い方
 -----
