@@ -3,6 +3,7 @@ require_once 'PHPUnit/Autoload.php';
 require_once 'ArrayWrapper.php';
 
 use NAL_6295\Collections\ArrayWrapper;
+use NAL_6295\Collections\JoinType;
 
 class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 {
@@ -187,6 +188,53 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 		$this->assertEquals(json_encode($expected),json_encode($actual));
 		
 	}
+
+
+
+	public function testLeftJoin()
+	{
+		$leftArray = array(
+					array("key" => 2,"name" => "Nasal Hair Cutter"),
+					array("key" => 3,"name" => "scissors"),
+					array("key" => 5,"name" => "knife")	
+				);
+
+		$rightArray = array(
+				array("id" => 1,"item_id" => 2,"value" => 10),
+				array("id" => 2,"item_id" => 2,"value" => 20),
+				array("id" => 3,"item_id" => 2,"value" => 30),
+				array("id" => 6,"item_id" => 5,"value" => 60),
+				array("id" => 7,"item_id" => 5,"value" => 70),
+			);
+
+		$target = ArrayWrapper::Wrap($leftArray);
+
+		$actual = $target
+				->join($rightArray,
+						array("key"),
+						array("item_id"),
+						function ($leftValue,$rightValue)
+						{
+
+							return 
+								array("item_id" => $leftValue["key"],
+										 "name" => $leftValue["name"],
+										 "value" => isset($rightValue) ? $rightValue["value"]:0);
+						},JoinType::LEFT)
+				->toVar();
+
+		$expected = array(
+					array("item_id" => 2,"name" => "Nasal Hair Cutter","value" => 10),
+					array("item_id" => 2,"name" => "Nasal Hair Cutter","value" => 20),
+					array("item_id" => 2,"name" => "Nasal Hair Cutter","value" => 30),
+					array("item_id" => 3,"name" => "scissors","value" => 0),
+					array("item_id" => 5,"name" => "knife","value" => 60),
+					array("item_id" => 5,"name" => "knife","value" => 70),
+				);					
+		$this->assertEquals(json_encode($expected),json_encode($actual));
+		
+	}
+
 
 	public function testOrderBy()
 	{

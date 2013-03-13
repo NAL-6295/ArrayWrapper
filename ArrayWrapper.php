@@ -2,6 +2,7 @@
 namespace NAL_6295\Collections;
 
 require_once 'OperationType.php';
+require_once 'JoinType.php';
 
 use Exception;
 
@@ -137,13 +138,16 @@ class ArrayWrapper
 
 	/**
 	* 配列同士をjoinする処理
-	*　inner joinのみ対応
+	*　inner join,left joinに対応
 	**/
 	private function _join(&$newArray,$leftValue,$joinInfo){
 		$rightValues = $joinInfo["right"];
 		$leftKey = $joinInfo["leftKey"];
 		$rightKey = $joinInfo["rightKey"];
 		$map = $joinInfo["map"];
+		$joinType = $joinInfo["joinType"];
+
+		$isNotFound = true;
 		foreach ($rightValues as $rightValue) {
 			$isSame = true;
 			for($i = 0;$i < count($leftKey);$i++){
@@ -154,7 +158,11 @@ class ArrayWrapper
 			}
 			if($isSame){
 				array_push($newArray,$map($leftValue,$rightValue));
+				$isNotFound = false;
 			}
+		}
+		if($isNotFound && $joinType == JoinType::LEFT){
+			array_push($newArray,$map($leftValue,null));			
 		}
 	}
 
@@ -342,7 +350,7 @@ class ArrayWrapper
 	* @param array $rightKey 結合する配列の結合キー
 	* @param lambda $map 結合結果についてのマップ処理 function(元配列の要素、結合する配列の要素){return 結合する要素}
 	**/
-	public function join($right,$leftKey,$rightKey,$map){
+	public function join($right,$leftKey,$rightKey,$map,$joinType = JoinType::INNER){
 #region "事前条件"
 		if(!is_array($right)){
 			throw new Exception("$right is not array");
@@ -363,13 +371,20 @@ class ArrayWrapper
 		if(!is_callable($map)){
 			throw new Exception("$map is not function");
 		}
+
+		if(!is_int($joinType) || !($joinType == JoinType::INNER || $joinType == JoinType::LEFT) ){
+			throw new Exception("joinType is not JoinType");
+		}
+
+
 #end region
 		$this->_functions[] = array(self::KEY => OperationType::JOIN,
 									"value" => array(
 												"right" => $right ,
 												"leftKey" => $leftKey,
 												"rightKey" => $rightKey,
-												"map"	=> $map));
+												"map"	=> $map,
+												"joinType" => $joinType));
 
 		return new ArrayWrapper($this->toVar());
 	}
