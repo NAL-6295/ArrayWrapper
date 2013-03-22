@@ -10,10 +10,7 @@ ArrayWrapperクラスのインスタンスを生成する時に、操作した�
 
 ```php
  $arrayVariable = array(1,2,3,4,5,6,7,8,9,10);
- $wrapper = new ArrayWrapper($arrayVariable);
-
-//or 
-
+ // new ArrayWrapperはできなくした。
  $wrapper = ArrayWrapper::Wrap($arrayVariable);
 
 ```
