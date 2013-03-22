@@ -35,7 +35,7 @@ class ArrayWrapper
 	*	コンストラクタ
 	*	@param array $source ラップしたい配列もしくは連想配列
 	**/
-	function __construct($source){
+	private function __construct($source){
 		if(!is_array($source)){
 			throw new Exception("$source is not array.");
 		}
@@ -259,6 +259,7 @@ class ArrayWrapper
 					$isReduce = true;
 				}else if($function[self::KEY] == OperationType::GROUP_BY){
 					$this->_grouping($groups,$value,$function["value"]);
+					$isExcept = true;
 				}else if($function[self::KEY] == OperationType::JOIN){
 					$isExcept = true;
 					$this->_join($newArray,$value,$function["value"]);
@@ -326,7 +327,7 @@ class ArrayWrapper
 
 
 		$this->_functions[] = array(self::KEY => OperationType::GROUP_BY,"value" => $groupKeys);
-		return new ArrayWrapper($this->toVar());
+		return ArrayWrapper::Wrap($this->toVar());
 	}
 
 	/**
@@ -386,7 +387,7 @@ class ArrayWrapper
 												"map"	=> $map,
 												"joinType" => $joinType));
 
-		return new ArrayWrapper($this->toVar());
+		return ArrayWrapper::Wrap($this->toVar());
 	}
 
 	/**
@@ -399,7 +400,7 @@ class ArrayWrapper
 	{
 		$this->_functions[] = array(self::KEY => OperationType::ORDER_BY,
 									"value" => $orderKey);
-		return new ArrayWrapper($this->toVar());
+		return ArrayWrapper::Wrap($this->toVar());
 	}
 
 	/**
@@ -466,7 +467,7 @@ class ArrayWrapper
 
 		}
 
-		return new ArrayWrapper($newArray);
+		return ArrayWrapper::Wrap($newArray);
 	}
 
 

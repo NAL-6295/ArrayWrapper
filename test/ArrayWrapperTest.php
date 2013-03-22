@@ -126,7 +126,7 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 				(
 					function($x)
 					{
-						$target = new ArrayWrapper($x["values"]);
+						$target = ArrayWrapper::Wrap($x["values"]);
 						return array("keys" => $x["keys"],
 									"value" => $target->sum("value"),
 									"avg" => $target->average("value"));
