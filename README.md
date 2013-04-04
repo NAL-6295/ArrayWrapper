@@ -21,7 +21,7 @@ where
 ----
 
 ```php
-	$target = new ArrayWrapper($array(1,2,3,4,5,6,7,8,9,10));
+	$target = ArrayWrapper::Wrap($array(1,2,3,4,5,6,7,8,9,10));
 
 	$actual = $target
 				->where(function($x){return $x > 5;})
@@ -34,7 +34,7 @@ select
 -----
 
 ```php
-	$target = new ArrayWrapper(array(1,2,3,4,5,6,7,8,9,10));	
+	$target = ArrayWrapper::Wrap(array(1,2,3,4,5,6,7,8,9,10));	
 	$actual = $target
 				->select(function($x){return $x * 2;})
 				->toVar();
@@ -46,7 +46,7 @@ where -> select
 -----
 
 ```php
-	$target = new ArrayWrapper(array(1,2,3,4,5,6,7,8,9,10));	
+	$target = ArrayWrapper::Wrap(array(1,2,3,4,5,6,7,8,9,10));	
 
 	$actual = $target
 			->where(function($x){return $x > 5;})
@@ -59,7 +59,7 @@ where -> select -> where
 -----
 
 ```php
-	$target = new ArrayWrapper(array(1,2,3,4,5,6,7,8,9,10));	
+	$target = ArrayWrapper::Wrap(array(1,2,3,4,5,6,7,8,9,10));	
 
 	$actual = $target
 			->where(function($x){return $x > 5;})
@@ -74,7 +74,7 @@ select -> reduce
 -----
 
 ```php
-	$target = new ArrayWrapper(array(1,2,3,4,5,6,7,8,9,10));	
+	$target = ArrayWrapper::Wrap(array(1,2,3,4,5,6,7,8,9,10));	
 
 	$actual = $target
 			->where(function($x){return $x > 5;})
@@ -88,7 +88,7 @@ select -> reduce
 -----
 
 ```php
-	$target = new ArrayWrapper(
+	$target = ArrayWrapper::Wrap(
 			array(
 				array("key" => 1,"value" => 10),
 				array("key" => 2,"value" => 11),
@@ -114,7 +114,7 @@ select -> reduce
 -----
 
 ```php
-$target = new ArrayWrapper(
+$target = ArrayWrapper::Wrap(
 		array(
 			array("id" => 2,"value" => 10),
 			array("id" => 2,"value" => 11),
@@ -147,7 +147,7 @@ $expected = array(
 -----
 
 ```php
-	$target = new ArrayWrapper(
+	$target = ArrayWrapper::Wrap(
 			array(
 				array("key" => 2,"value" => 10),
 				array("key" => 2,"value" => 11),
@@ -197,7 +197,7 @@ $expected = array(
 			array("id" => 7,"item_id" => 5,"value" => 70),
 		);
 
-	$target = new ArrayWrapper($leftArray);
+	$target = nArrayWrapper::Wrap($leftArray);
 
 	$actual = $target
 			->join($rightArray,
@@ -273,7 +273,7 @@ $expected = array(
 -----
 
 ```php
-	$target = new ArrayWrapper(
+	$target = ArrayWrapper::Wrap(
 			array(
 				array("key" => 2,"value" => 10),
 				array("key" => 5,"value" => 11),
@@ -304,7 +304,7 @@ $expected = array(
 -----
 
 ```php
-	$target = new ArrayWrapper(
+	$target = ArrayWrapper::Wrap(
 			array(
 				array("key" => 2,"key2" => 2,"value" => 10),
 				array("key" => 3,"key2" => 5,"value" => 11),
