@@ -189,7 +189,52 @@ class ArrayWrapperTest extends PHPUnit_Framework_TestCase
 		
 	}
 
+	public function testJoinCallableKey()
+	{
+		$leftArray = array(
+					array("key" => 2,"name" => "Nasal Hair Cutter"),
+					array("key" => 3,"name" => "scissors"),
+					array("key" => 5,"name" => "knife")	
+				);
 
+		$rightArray = array(
+				array("id" => 1,"item_id" => 2,"value" => 10),
+				array("id" => 2,"item_id" => 2,"value" => 20),
+				array("id" => 3,"item_id" => 2,"value" => 30),
+				array("id" => 4,"item_id" => 3,"value" => 40),
+				array("id" => 5,"item_id" => 3,"value" => 50),
+				array("id" => 6,"item_id" => 5,"value" => 60),
+				array("id" => 7,"item_id" => 5,"value" => 70),
+			);
+
+		$target = ArrayWrapper::Wrap($leftArray);
+
+		$actual = $target
+				->join($rightArray,
+						array("key"),
+						array(function($x){return $x["item_id"];}),
+						function ($leftValue,$rightValue)
+						{
+
+							return 
+								array("item_id" => $rightValue["item_id"],
+										 "name" => $leftValue["name"],
+										 "value" => $rightValue["value"]);
+						})
+				->toVar();
+
+		$expected = array(
+					array("item_id" => 2,"name" => "Nasal Hair Cutter","value" => 10),
+					array("item_id" => 2,"name" => "Nasal Hair Cutter","value" => 20),
+					array("item_id" => 2,"name" => "Nasal Hair Cutter","value" => 30),
+					array("item_id" => 3,"name" => "scissors","value" => 40),
+					array("item_id" => 3,"name" => "scissors","value" => 50),
+					array("item_id" => 5,"name" => "knife","value" => 60),
+					array("item_id" => 5,"name" => "knife","value" => 70),
+				);					
+		$this->assertEquals(json_encode($expected),json_encode($actual));
+		
+	}
 
 	public function testLeftJoin()
 	{

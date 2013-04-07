@@ -46,16 +46,33 @@ class ArrayWrapper
 	*   配列同士のコンペア
 	*   groupBy,orderByで利用
 	**/
-	private function compare($left,$right,$keys)
+	private function compare($left,$right,$leftKeys,$rightKeys = null)
 	{
-		foreach($keys as $key){
-			if($left[$key[self::KEY]] > $right[$key[self::KEY]]){
-				if($key[self::DESC] == false){
+		if(!isset($rightKeys)){
+			$rightKeys = $leftKeys;
+		}
+		else
+		{
+		}
+		$getValue = function($target,$key){
+			if(is_string($key)){
+				return $target[$key];
+			}
+
+			if(is_callable($key)){
+				return $key($target);
+			}
+		};
+		for ($i=0; $i < count($leftKeys); $i++) { 			
+			$leftValue = $getValue($left,$leftKeys[$i][self::KEY]);
+			$rightValue = $getValue($right,$rightKeys[$i][self::KEY]);
+			if($leftValue > $rightValue){
+				if($leftKeys[$i][self::DESC] == false){
 					return -1;
 				}
 				return 1;
-			}elseif($left[$key[self::KEY]] < $right[$key[self::KEY]]){
-				if($key[self::DESC] == true){
+			}elseif($leftValue < $rightValue){
+				if($leftKeys[$i][self::DESC] == true){
 					return -1;
 					break;
 				}
@@ -148,15 +165,10 @@ class ArrayWrapper
 		$joinType = $joinInfo["joinType"];
 
 		$isNotFound = true;
-		foreach ($rightValues as $rightValue) {
-			$isSame = true;
-			for($i = 0;$i < count($leftKey);$i++){
-				if($leftValue[$leftKey[$i]] != $rightValue[$rightKey[$i]] ){
-					$isSame = false;
-					break;
-				}
-			}
-			if($isSame){
+		foreach ($rightValues as $rightValue) 
+		{
+			if(self::compare($leftValue,$rightValue,$leftKey,$rightKey) == 0)
+			{
 				array_push($newArray,$map($leftValue,$rightValue));
 				$isNotFound = false;
 			}
@@ -379,11 +391,22 @@ class ArrayWrapper
 
 
 #end region
+
+		$leftKeys = array();
+		foreach ($leftKey as $value) {
+			array_push($leftKeys, array(self::KEY => $value,self::DESC => "false"));
+		}
+		$rightKeys = array();
+		foreach ($rightKey as  $value) {
+			array_push($rightKeys, array(self::KEY => $value,self::DESC => "false"));
+		}
+
+
 		$this->_functions[] = array(self::KEY => OperationType::JOIN,
 									"value" => array(
 												"right" => $right ,
-												"leftKey" => $leftKey,
-												"rightKey" => $rightKey,
+												"leftKey" => $leftKeys,
+												"rightKey" => $rightKeys,
 												"map"	=> $map,
 												"joinType" => $joinType));
 
