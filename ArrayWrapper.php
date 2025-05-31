@@ -35,7 +35,7 @@ class ArrayWrapper
 	*	コンストラクタ
 	*	@param array $source ラップしたい配列もしくは連想配列
 	**/
-	private function __construct($source){
+	public function __construct($source){
 		if(!is_array($source)){
 			throw new Exception("$source is not array.");
 		}
@@ -66,91 +66,54 @@ class ArrayWrapper
 		for ($i=0; $i < count($leftKeys); $i++) { 			
 			$leftValue = $getValue($left,$leftKeys[$i][self::KEY]);
 			$rightValue = $getValue($right,$rightKeys[$i][self::KEY]);
+
 			if($leftValue > $rightValue){
-				if($leftKeys[$i][self::DESC] == false){
-					return -1;
-				}
-				return 1;
+				return $leftKeys[$i][self::DESC] ? -1 : 1;
 			}elseif($leftValue < $rightValue){
-				if($leftKeys[$i][self::DESC] == true){
-					return -1;
-					break;
-				}
-				return 1;
+				return $leftKeys[$i][self::DESC] ? 1 : -1;
 			}
 		}
 		return 0;
 	}
 
 	/**
-	* groupBy時に新しいgroupを作成する。
-	*
-	**/
-	private function _addNewGroup($keyList,$value){
-		foreach($keyList as $groupKey){
-			$groupKeys[$groupKey[self::KEY]] = $value[$groupKey[self::KEY]];
-		}
-		return array(self::GROUP_KEYS => $groupKeys,self::GROUP_VALUES => array($value));
-	}	
-	
 	/**
-	* groupBy処理
+	* groupBy処理 - populates a temporary map with grouped items.
+	* The map's keys are generated from the item's values for the specified group keys.
 	*
+	* @param array &$tempGroupsMap Associative array to store groups, passed by reference.
+	* @param mixed $valueToGroup The item to be grouped.
+	* @param array $groupKeyDefs Definitions of keys to group by.
 	**/
-	private function _grouping(&$groups,$value,$groupKeys){
-		$arrayCount = count($groups);
-		if($arrayCount == 0){
-			$groups[] = $this->_addNewGroup($groupKeys,$value);		
-			return;
-		}
+	private function _grouping(&$tempGroupsMap, $valueToGroup, $groupKeyDefs){
+		$groupValArray = [];
+		$actualKeyValues = []; // Stores the actual values for the keys that form this group
 
-		$start = 0;
+		$getValue = function($target, $keyDef){
+			$keyName = $keyDef[self::KEY];
+			if(is_string($keyName)){
+				return $target[$keyName];
+			}
+			if(is_callable($keyName)){
+				return $keyName($target);
+			}
+			return null; // Should not happen with current usage
+		};
 
-		$target = floor($arrayCount / 2);
-		while(true)
-		{
-			$arrayValue = $groups[$target];
-			switch (self::compare($arrayValue[self::GROUP_KEYS],$value,$groupKeys)) 
-			{
-				case -1:
-					if($target - $start > 1)
-					{
-						$target = $target - floor(($target - $start) / 2);
-					}
-					else if(self::compare($groups[$start][self::GROUP_KEYS],$value,$groupKeys) == -1)
-					{
-						array_splice($groups,$start,0,array($this->_addNewGroup($groupKeys,$value)));
-						return;
-					}
-					else
-					{
-						array_splice($groups,$target,0,array($this->_addNewGroup($groupKeys,$value)));
-						return;							
-					}
-					break;
-				case 0;	
-					array_push($groups[$target][self::GROUP_VALUES],$value);
-					return;
-					break;
-				default:
-					if($arrayCount - $target > 1)
-					{
-						$start = $target;
-						$target = $target + floor(($arrayCount - $target) /2); 
-					}
-					else if(self::compare($groups[$arrayCount -1][self::GROUP_KEYS],$value,$groupKeys) == -1)
-					{
-						array_splice($groups,$arrayCount -1,0,array($this->_addNewGroup($groupKeys,$value)));
-						return;
-					}
-					else
-					{
-						array_push($groups,$this->_addNewGroup($groupKeys,$value));
-						return;							
-					}
-					break;
-			}			
+		foreach($groupKeyDefs as $keyDef){
+			$val = $getValue($valueToGroup, $keyDef);
+			$groupValArray[] = (string)$val; // Cast to string for consistent key generation
+			$actualKeyValues[$keyDef[self::KEY]] = $val;
 		}
+		$mapKey = implode("::", $groupValArray); // Create a unique string key for the map
+
+		if(!isset($tempGroupsMap[$mapKey])){
+			$tempGroupsMap[$mapKey] = array(
+				self::GROUP_KEYS => $actualKeyValues,
+				self::GROUP_VALUES => array()
+			);
+		}
+		$tempGroupsMap[$mapKey][self::GROUP_VALUES][] = $valueToGroup;
 	}
 
 	/**
@@ -182,64 +145,14 @@ class ArrayWrapper
 	* OrderBy処理
 	*
 	**/
-	private function _orderBy(&$newArray,$value,$orderKeys)
+	private function _orderBy($arrayToSort, $orderKeys)
 	{
-
-		$arrayCount = count($newArray);
-		if($arrayCount == 0)
-		{
-			array_push($newArray, $value);
-			return;
-		}
-
-		$start = 0;
-
-		$target = floor($arrayCount / 2);
-		while(true)
-		{
-			$arrayValue = $newArray[$target];
-			switch (self::compare($arrayValue,$value,$orderKeys)) 
-			{
-				case -1:
-					if($target - $start > 1)
-					{
-						$target = $target - floor(($target - $start) / 2);
-					}
-					else if(self::compare($newArray[$start],$value,$orderKeys) == -1)
-					{
-						array_splice($newArray,$start,0,array($value));
-						return;
-					}
-					else
-					{
-						array_splice($newArray,$target,0,array($value));
-						return;							
-					}
-					break;
-				case 0;	
-					array_splice($newArray,$target+1,0,array($value));
-					return;
-					break;
-				default:
-					if($arrayCount - $target > 1)
-					{
-						$start = $target;
-						$target = $target + floor(($arrayCount - $target) /2); 
-					}
-					else if(self::compare($newArray[$arrayCount -1],$value,$orderKeys) == -1)
-					{
-						array_splice($newArray,$arrayCount -1,0,array($value));
-						return;
-					}
-					else
-					{
-						array_push($newArray,$value);
-						return;							
-					}
-					break;
-			}			
-		}
-
+		// usort sorts the array in place, but it's clearer to return it.
+		// The compare function needs $orderKeys, so we use a closure.
+		usort($arrayToSort, function($a, $b) use ($orderKeys) {
+			return $this->compare($a, $b, $orderKeys);
+		});
+		return $arrayToSort;
 	}
 
 	/**
@@ -250,49 +163,101 @@ class ArrayWrapper
 		
 		$reduceResult = 0;
 		$isReduce = false;
-		$groups = array();
-		$newArray = array();
+		$newArray = array(); // Used for SELECT/WHERE results, or JOIN results
 		if($this->_functions == null){
 			return $this->_source;
 		}
 
+		$orderByKeys = null;
+		$hasOrderBy = false;
+		$groupByKeysDefs = null; // Store GroupBy key definitions
+		$hasGroupBy = false;
+		$tempGroupsMap = []; // Temporary map for grouping
+
+		// First pass: identify operations and extract ORDER_BY/GROUP_BY details
+		$activeFunctions = array(); // Functions to apply in the loop (excluding delayed ORDER_BY)
+		foreach($this->_functions as $funcDetails) {
+			if ($funcDetails[self::KEY] == OperationType::ORDER_BY) {
+				$hasOrderBy = true;
+				$orderByKeys = $funcDetails["value"];
+			} else if ($funcDetails[self::KEY] == OperationType::GROUP_BY) {
+				$hasGroupBy = true;
+				$groupByKeysDefs = $funcDetails["value"];
+				// GROUP_BY operation itself is handled iteratively by _grouping using $tempGroupsMap
+				$activeFunctions[] = $funcDetails;
+			} else {
+				$activeFunctions[] = $funcDetails;
+			}
+		}
+
 		foreach($this->_source as $value){
+			$currentValue = $value;
 			$isExcept = false;
-			foreach($this->_functions as $function){
+
+			foreach($activeFunctions as $function){
 				if($function[self::KEY] == OperationType::WHERE){
-					if(!$function["value"]($value)){
+					if(!$function["value"]($currentValue)){
 						$isExcept = true;
 						break;
 					}
 				}else if($function[self::KEY] == OperationType::SELECT){
-					$value = $function["value"]($value);
+					$currentValue = $function["value"]($currentValue);
 				}else if($function[self::KEY] == OperationType::REDUCE){
-					$reduceResult = $function["value"]($reduceResult,$value);
+					$reduceResult = $function["value"]($reduceResult,$currentValue);
 					$isReduce = true;
+					// If reduce is active, it's a terminal operation for this item's path.
+					// The item won't be added to $newArray or $tempGroupsMap for this iteration.
+					$isExcept = true;
+					break;
 				}else if($function[self::KEY] == OperationType::GROUP_BY){
-					$this->_grouping($groups,$value,$function["value"]);
+					// $groupByKeysDefs would have been set if GROUP_BY is in _functions
+					$this->_grouping($tempGroupsMap, $currentValue, $groupByKeysDefs);
 					$isExcept = true;
+					break;
 				}else if($function[self::KEY] == OperationType::JOIN){
+					$this->_join($newArray,$currentValue,$function["value"]);
 					$isExcept = true;
-					$this->_join($newArray,$value,$function["value"]);
-				}else if($function[self::KEY] == OperationType::ORDER_BY){
-					$isExcept = true;
-					$this->_orderBy($newArray,$value,$function["value"]);
+					break;
 				}
 			}
+
 			if(!$isExcept){
-				$newArray[] = $value;
+				$newArray[] = $currentValue;
 			}
 		}	
+
+		// Handle terminal operations results
 		if($isReduce){
-			array_pop($this->_functions);
+			$finalFunctions = [];
+			foreach($this->_functions as $func) { if ($func[self::KEY] != OperationType::REDUCE) $finalFunctions[] = $func; }
+			$this->_functions = $finalFunctions;
 			return $reduceResult;
 		}
-		if(count($groups) != 0){
-			return $groups;
+
+		$resultArray;
+		if($hasGroupBy) {
+			$resultArray = array_values($tempGroupsMap);
+		} else {
+			// If not grouping, $newArray contains results from WHERE/SELECT or JOIN.
+			// JOIN populates $newArray directly. WHERE/SELECT append to $newArray.
+			$resultArray = $newArray;
 		}
 
-		return $newArray;
+		if($hasOrderBy && $orderByKeys){
+			$resultArray = $this->_orderBy($resultArray, $orderByKeys);
+		}
+
+		// Clean up processed terminal-like operations (ORDER_BY, GROUP_BY) from the main _functions queue
+		// This makes the ArrayWrapper stateful and might need review for immutability patterns.
+		$finalFunctions = [];
+		foreach($this->_functions as $func) {
+			if ($func[self::KEY] != OperationType::ORDER_BY && $func[self::KEY] != OperationType::GROUP_BY) {
+				$finalFunctions[] = $func;
+			}
+		}
+		$this->_functions = $finalFunctions;
+
+		return $resultArray;
 	}
 	
 	/**

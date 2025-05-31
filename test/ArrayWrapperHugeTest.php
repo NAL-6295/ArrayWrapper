@@ -1,15 +1,15 @@
 <?php
-require_once 'PHPUnit/Autoload.php';
 require_once 'ArrayWrapper.php';
 
 use NAL_6295\Collections\ArrayWrapper;
+use PHPUnit\Framework\TestCase;
 
-class ArrayWrapperHugeTest extends PHPUnit_Framework_TestCase
+class ArrayWrapperHugeTest extends TestCase
 {
 
 	var $targetSource = array();
 	var $expected = array();
-	public function setUp()
+	public function setUp(): void
 	{
 		$this->targetSource = array();
 		$this->expected = array();
@@ -37,12 +37,16 @@ class ArrayWrapperHugeTest extends PHPUnit_Framework_TestCase
 
 		$target = new ArrayWrapper($this->targetSource);
 
+		$startTime = microtime(true);
 		$actual = $target
 				->orderBy(array(
 						array("key" => "key","desc" => false),
 						array("key" => "key2","desc" => false)
 						))
 				->toVar();
+		$endTime = microtime(true);
+		$executionTime = $endTime - $startTime;
+		echo "Execution time for orderBy: " . $executionTime . " seconds\n";
 
 		// $actual = $this->targetSource;
 
@@ -56,5 +60,35 @@ class ArrayWrapperHugeTest extends PHPUnit_Framework_TestCase
 
 	}
 
+	public function testGroupByHugeData()
+	{
+		$target = new ArrayWrapper($this->targetSource);
+		$groupKeys = array("key"); // Group by the 'key' field
+
+		$startTime = microtime(true);
+		$groupedResult = $target->groupBy($groupKeys)->toVar();
+		$endTime = microtime(true);
+
+		$executionTime = $endTime - $startTime;
+		echo "Execution time for groupBy: " . $executionTime . " seconds\n";
+
+		// Assertions:
+		// 1. Check the number of groups.
+		//    $count = 10000; floor($i/10) gives 1000 unique keys (0-999)
+		$this->assertEquals(1000, count($groupedResult));
+
+		// 2. Check if one group has the expected structure and count of items.
+		//    For example, group with key '0' (floor($i/10) == 0) should have 10 items.
+		$firstGroup = null;
+		foreach ($groupedResult as $group) {
+			if (isset($group['keys']['key']) && $group['keys']['key'] == 0) {
+				$firstGroup = $group;
+				break;
+			}
+		}
+		$this->assertNotNull($firstGroup, "Group with key '0' not found.");
+		$this->assertEquals(0, $firstGroup['keys']['key']);
+		$this->assertEquals(10, count($firstGroup['values']));
+	}
 }
 ?>
