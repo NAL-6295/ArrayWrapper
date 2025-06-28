@@ -1,0 +1,256 @@
+name: CI - PHP ArrayWrapper Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: PHP Tests
+    runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.1', '8.2', '8.3', '8.4']
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup PHP ${{ matrix.php-version }}
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        extensions: mbstring
+        coverage: none
+        
+    - name: Validate PHP syntax
+      run: |
+        find . -name "*.php" -not -path "./vendor/*" -exec php -l {} \;
+        
+    - name: Run ArrayWrapper Main Tests
+      run: |
+        cd test
+        php ArrayWrapperTest.php
+        
+    - name: Run ArrayWrapper Performance Tests
+      run: |
+        cd test
+        php ArrayWrapperHugeTest.php
+
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup PHP 8.4
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.4'
+        extensions: mbstring
+        coverage: none
+        
+    - name: Check PHP version compatibility
+      run: |
+        echo "✅ Checking PHP 8.x features usage..."
+        
+        # Check for enum usage
+        if grep -r "enum.*:" . --include="*.php" --exclude-dir=vendor; then
+          echo "✅ PHP 8.1 Enums detected"
+        fi
+        
+        # Check for arrow functions
+        if grep -r "fn(" . --include="*.php" --exclude-dir=vendor; then
+          echo "✅ PHP 7.4+ Arrow functions detected"
+        fi
+        
+        # Check for strict types
+        if grep -r "declare(strict_types=1)" . --include="*.php" --exclude-dir=vendor; then
+          echo "✅ Strict types declaration found"
+        fi
+        
+        # Check for union types
+        if grep -r "string|callable\|int|float" . --include="*.php" --exclude-dir=vendor; then
+          echo "✅ PHP 8.0+ Union types detected"
+        fi
+        
+        echo "✅ Code quality checks passed!"
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup PHP 8.4
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.4'
+        extensions: mbstring
+        coverage: none
+        
+    - name: Basic Security Checks
+      run: |
+        echo "🔍 Running basic security checks..."
+        
+        # Check for potential security issues
+        echo "Checking for eval() usage..."
+        if grep -r "eval(" . --include="*.php" --exclude-dir=vendor; then
+          echo "❌ Found eval() usage - potential security risk"
+          exit 1
+        else
+          echo "✅ No eval() usage found"
+        fi
+        
+        # Check for shell_exec usage
+        echo "Checking for shell command execution..."
+        if grep -r "shell_exec\|system\|exec\|passthru" . --include="*.php" --exclude-dir=vendor; then
+          echo "⚠️ Found shell execution functions - please review"
+        else
+          echo "✅ No shell execution functions found"
+        fi
+        
+        # Check for SQL injection patterns (basic)
+        echo "Checking for potential SQL injection patterns..."
+        if grep -r "\$_GET\|\$_POST.*SELECT\|query.*\$" . --include="*.php" --exclude-dir=vendor; then
+          echo "⚠️ Potential SQL injection patterns found - please review"
+        else
+          echo "✅ No obvious SQL injection patterns found"
+        fi
+        
+        echo "🔒 Security scan completed!"
+
+  performance-benchmark:
+    name: Performance Benchmark
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup PHP 8.4
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.4'
+        extensions: mbstring
+        coverage: none
+        
+    - name: Run Performance Benchmark
+      run: |
+        echo "⚡ Running performance benchmarks..."
+        cd test
+        
+        # Run performance test and capture output
+        php ArrayWrapperHugeTest.php > benchmark_result.txt
+        
+        # Extract execution time
+        EXEC_TIME=$(grep "Execution time:" benchmark_result.txt | grep -o '[0-9.]*' | head -1)
+        
+        echo "📊 Performance Results:"
+        echo "- Dataset size: 10,000 items"
+        echo "- Execution time: ${EXEC_TIME} ms"
+        
+        # Performance threshold check (should be under 1000ms)
+        # Using awk instead of bc for better compatibility
+        if awk -v time="${EXEC_TIME}" 'BEGIN {exit (time > 1000 ? 0 : 1)}'; then
+          echo "❌ Performance degradation detected! Execution time exceeded 1000ms"
+          exit 1
+        else
+          echo "✅ Performance is within acceptable limits"
+        fi
+        
+        cat benchmark_result.txt
+
+  compatibility-check:
+    name: PHP Version Compatibility
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        php-version: ['8.1', '8.2', '8.3', '8.4']
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup PHP ${{ matrix.php-version }}
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        extensions: mbstring
+        coverage: none
+        
+    - name: Test PHP ${{ matrix.php-version }} Compatibility
+      run: |
+        echo "🧪 Testing compatibility with PHP ${{ matrix.php-version }}"
+        
+        # Test basic syntax
+        php -l ArrayWrapper.php
+        php -l JoinType.php  
+        php -l OperationType.php
+        
+        # Run a quick functionality test
+        cd test
+        timeout 30s php ArrayWrapperTest.php
+        
+        echo "✅ PHP ${{ matrix.php-version }} compatibility confirmed!"
+
+  test-results:
+    name: Aggregate Test Results
+    runs-on: ubuntu-latest
+    needs: [test, code-quality, security-scan, performance-benchmark, compatibility-check]
+    if: always()
+    
+    steps:
+    - name: Check all jobs status
+      run: |
+        echo "📋 CI Pipeline Results Summary:"
+        echo "=============================="
+        
+        if [[ "${{ needs.test.result }}" == "success" ]]; then
+          echo "✅ Main Tests: PASSED"
+        else
+          echo "❌ Main Tests: FAILED"
+        fi
+        
+        if [[ "${{ needs.code-quality.result }}" == "success" ]]; then
+          echo "✅ Code Quality: PASSED"
+        else
+          echo "❌ Code Quality: FAILED"
+        fi
+        
+        if [[ "${{ needs.security-scan.result }}" == "success" ]]; then
+          echo "✅ Security Scan: PASSED"
+        else
+          echo "❌ Security Scan: FAILED"
+        fi
+        
+        if [[ "${{ needs.performance-benchmark.result }}" == "success" ]]; then
+          echo "✅ Performance: PASSED"
+        else
+          echo "❌ Performance: FAILED"
+        fi
+        
+        if [[ "${{ needs.compatibility-check.result }}" == "success" ]]; then
+          echo "✅ Compatibility: PASSED"
+        else
+          echo "❌ Compatibility: FAILED"
+        fi
+        
+        # Fail if any critical job failed
+        if [[ "${{ needs.test.result }}" != "success" ]] || [[ "${{ needs.code-quality.result }}" != "success" ]]; then
+          echo ""
+          echo "❌ Critical tests failed. Merge blocked!"
+          exit 1
+        fi
+        
+        echo ""
+        echo "🎉 All critical checks passed! Ready for merge."

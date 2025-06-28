@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace NAL_6295\Collections;
 
-class JoinType
+enum JoinType: int
 {
-	const INNER = 0;
-	const LEFT = 1;
+	case INNER = 0;
+	case LEFT = 1;
 }
 
 ?>

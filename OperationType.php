@@ -1,16 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace NAL_6295\Collections;
 
-class OperationType
+enum OperationType: int
 {
-	const WHERE = 0;
-	const SELECT = 1;
-	const REDUCE = 2;
-	const GROUP_BY = 3;
-	const JOIN = 4;
-	const ORDER_BY = 5;	
-	const ZIP = 6;
+	case WHERE = 0;
+	case SELECT = 1;
+	case REDUCE = 2;
+	case GROUP_BY = 3;
+	case JOIN = 4;
+	case ORDER_BY = 5;	
+	case ZIP = 6;
 }
 
 ?>
