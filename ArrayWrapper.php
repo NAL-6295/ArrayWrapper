@@ -43,40 +43,47 @@ class ArrayWrapper
 	}
 
 	/**
-	*   配列同士のコンペア
+	*   配列同士のコンペア（最適化版）
 	*   groupBy,orderByで利用
 	**/
-	private function compare($left,$right,$leftKeys,$rightKeys = null)
+	private function compare($left, $right, $leftKeys, $rightKeys = null)
 	{
-		if(!isset($rightKeys)){
+		if (!isset($rightKeys)) {
 			$rightKeys = $leftKeys;
 		}
-		else
-		{
-		}
-		$getValue = function($target,$key){
-			if(is_string($key)){
-				return $target[$key];
+		
+		$leftKeysCount = count($leftKeys);
+		
+		for ($i = 0; $i < $leftKeysCount; $i++) { 
+			$leftKeyInfo = $leftKeys[$i];
+			$rightKeyInfo = $rightKeys[$i];
+			
+			// getValue logic inlined for performance
+			$leftKey = $leftKeyInfo[self::KEY];
+			$rightKey = $rightKeyInfo[self::KEY];
+			
+			if (is_string($leftKey)) {
+				$leftValue = $left[$leftKey];
+			} elseif (is_callable($leftKey)) {
+				$leftValue = $leftKey($left);
+			} else {
+				$leftValue = $left[$leftKey];
 			}
-
-			if(is_callable($key)){
-				return $key($target);
+			
+			if (is_string($rightKey)) {
+				$rightValue = $right[$rightKey];
+			} elseif (is_callable($rightKey)) {
+				$rightValue = $rightKey($right);
+			} else {
+				$rightValue = $right[$rightKey];
 			}
-		};
-		for ($i=0; $i < count($leftKeys); $i++) { 			
-			$leftValue = $getValue($left,$leftKeys[$i][self::KEY]);
-			$rightValue = $getValue($right,$rightKeys[$i][self::KEY]);
-			if($leftValue > $rightValue){
-				if($leftKeys[$i][self::DESC] == false){
-					return -1;
+			
+			if ($leftValue !== $rightValue) {
+				if ($leftValue > $rightValue) {
+					return $leftKeyInfo[self::DESC] ? -1 : 1;
+				} else {
+					return $leftKeyInfo[self::DESC] ? 1 : -1;
 				}
-				return 1;
-			}elseif($leftValue < $rightValue){
-				if($leftKeys[$i][self::DESC] == true){
-					return -1;
-					break;
-				}
-				return 1;
 			}
 		}
 		return 0;
@@ -86,70 +93,33 @@ class ArrayWrapper
 	* groupBy時に新しいgroupを作成する。
 	*
 	**/
-	private function _addNewGroup($keyList,$value){
+	private function _addNewGroup($keyList, $value){
+		$groupKeys = [];
 		foreach($keyList as $groupKey){
 			$groupKeys[$groupKey[self::KEY]] = $value[$groupKey[self::KEY]];
 		}
-		return array(self::GROUP_KEYS => $groupKeys,self::GROUP_VALUES => array($value));
+		return [self::GROUP_KEYS => $groupKeys, self::GROUP_VALUES => [$value]];
 	}	
 	
 	/**
-	* groupBy処理
-	*
+	* groupBy処理（最適化版 - ハッシュマップベース）
 	**/
-	private function _grouping(&$groups,$value,$groupKeys){
-		$arrayCount = count($groups);
-		if($arrayCount == 0){
-			$groups[] = $this->_addNewGroup($groupKeys,$value);		
-			return;
+	private function _groupingOptimized(&$groups, $value, $groupKeys){
+		// グループキーのハッシュを生成
+		$hashKey = '';
+		foreach($groupKeys as $keyInfo) {
+			$key = $keyInfo[self::KEY];
+			if (is_string($key)) {
+				$hashKey .= $value[$key] . '|';
+			} elseif (is_callable($key)) {
+				$hashKey .= $key($value) . '|';
+			}
 		}
-
-		$start = 0;
-
-		$target = floor($arrayCount / 2);
-		while(true)
-		{
-			$arrayValue = $groups[$target];
-			switch (self::compare($arrayValue[self::GROUP_KEYS],$value,$groupKeys)) 
-			{
-				case -1:
-					if($target - $start > 1)
-					{
-						$target = $target - floor(($target - $start) / 2);
-					}
-					else if(self::compare($groups[$start][self::GROUP_KEYS],$value,$groupKeys) == -1)
-					{
-						array_splice($groups,$start,0,array($this->_addNewGroup($groupKeys,$value)));
-						return;
-					}
-					else
-					{
-						array_splice($groups,$target,0,array($this->_addNewGroup($groupKeys,$value)));
-						return;							
-					}
-					break;
-				case 0;	
-					array_push($groups[$target][self::GROUP_VALUES],$value);
-					return;
-					break;
-				default:
-					if($arrayCount - $target > 1)
-					{
-						$start = $target;
-						$target = $target + floor(($arrayCount - $target) /2); 
-					}
-					else if(self::compare($groups[$arrayCount -1][self::GROUP_KEYS],$value,$groupKeys) == -1)
-					{
-						array_splice($groups,$arrayCount -1,0,array($this->_addNewGroup($groupKeys,$value)));
-						return;
-					}
-					else
-					{
-						array_push($groups,$this->_addNewGroup($groupKeys,$value));
-						return;							
-					}
-					break;
-			}			
+		
+		if (isset($groups[$hashKey])) {
+			$groups[$hashKey][self::GROUP_VALUES][] = $value;
+		} else {
+			$groups[$hashKey] = $this->_addNewGroup($groupKeys, $value);
 		}
 	}
 
@@ -167,79 +137,26 @@ class ArrayWrapper
 		$isNotFound = true;
 		foreach ($rightValues as $rightValue) 
 		{
-			if(self::compare($leftValue,$rightValue,$leftKey,$rightKey) == 0)
+			if($this->compare($leftValue,$rightValue,$leftKey,$rightKey) == 0)
 			{
-				array_push($newArray,$map($leftValue,$rightValue));
+				$newArray[] = $map($leftValue,$rightValue);
 				$isNotFound = false;
 			}
 		}
 		if($isNotFound && $joinType == JoinType::LEFT){
-			array_push($newArray,$map($leftValue,null));			
+			$newArray[] = $map($leftValue,null);			
 		}
 	}
 
 	/**
-	* OrderBy処理
-	*
+	* OrderBy処理（最適化版 - PHP native sort使用）
 	**/
-	private function _orderBy(&$newArray,$value,$orderKeys)
+	private function _orderByOptimized(&$newArray, $orderKeys)
 	{
-
-		$arrayCount = count($newArray);
-		if($arrayCount == 0)
-		{
-			array_push($newArray, $value);
-			return;
-		}
-
-		$start = 0;
-
-		$target = floor($arrayCount / 2);
-		while(true)
-		{
-			$arrayValue = $newArray[$target];
-			switch (self::compare($arrayValue,$value,$orderKeys)) 
-			{
-				case -1:
-					if($target - $start > 1)
-					{
-						$target = $target - floor(($target - $start) / 2);
-					}
-					else if(self::compare($newArray[$start],$value,$orderKeys) == -1)
-					{
-						array_splice($newArray,$start,0,array($value));
-						return;
-					}
-					else
-					{
-						array_splice($newArray,$target,0,array($value));
-						return;							
-					}
-					break;
-				case 0;	
-					array_splice($newArray,$target+1,0,array($value));
-					return;
-					break;
-				default:
-					if($arrayCount - $target > 1)
-					{
-						$start = $target;
-						$target = $target + floor(($arrayCount - $target) /2); 
-					}
-					else if(self::compare($newArray[$arrayCount -1],$value,$orderKeys) == -1)
-					{
-						array_splice($newArray,$arrayCount -1,0,array($value));
-						return;
-					}
-					else
-					{
-						array_push($newArray,$value);
-						return;							
-					}
-					break;
-			}			
-		}
-
+		$self = $this;
+		usort($newArray, function($a, $b) use ($orderKeys, $self) {
+			return $self->compare($a, $b, $orderKeys);
+		});
 	}
 
 	/**
@@ -250,46 +167,68 @@ class ArrayWrapper
 		
 		$reduceResult = 0;
 		$isReduce = false;
-		$groups = array();
-		$newArray = array();
+		$groups = [];
+		$newArray = [];
+		$isGroupBy = false;
+		$isOrderBy = false;
+		$orderKeys = null;
+		
 		if($this->_functions == null){
 			return $this->_source;
 		}
 
+		// 先にOrderByやGroupByがあるかチェック
+		foreach($this->_functions as $function){
+			if($function[self::KEY] == OperationType::ORDER_BY){
+				$isOrderBy = true;
+				$orderKeys = $function["value"];
+			} elseif($function[self::KEY] == OperationType::GROUP_BY){
+				$isGroupBy = true;
+			}
+		}
+
 		foreach($this->_source as $value){
 			$isExcept = false;
+			$currentValue = $value;
+			
 			foreach($this->_functions as $function){
 				if($function[self::KEY] == OperationType::WHERE){
-					if(!$function["value"]($value)){
+					if(!$function["value"]($currentValue)){
 						$isExcept = true;
 						break;
 					}
 				}else if($function[self::KEY] == OperationType::SELECT){
-					$value = $function["value"]($value);
+					$currentValue = $function["value"]($currentValue);
 				}else if($function[self::KEY] == OperationType::REDUCE){
-					$reduceResult = $function["value"]($reduceResult,$value);
+					$reduceResult = $function["value"]($reduceResult,$currentValue);
 					$isReduce = true;
 				}else if($function[self::KEY] == OperationType::GROUP_BY){
-					$this->_grouping($groups,$value,$function["value"]);
+					$this->_groupingOptimized($groups,$currentValue,$function["value"]);
 					$isExcept = true;
 				}else if($function[self::KEY] == OperationType::JOIN){
 					$isExcept = true;
-					$this->_join($newArray,$value,$function["value"]);
+					$this->_join($newArray,$currentValue,$function["value"]);
 				}else if($function[self::KEY] == OperationType::ORDER_BY){
-					$isExcept = true;
-					$this->_orderBy($newArray,$value,$function["value"]);
+					// OrderBy処理は後でまとめて行うのでここでは何もしない
+					// $isExceptはfalseのままにして、要素をnewArrayに追加する
 				}
 			}
 			if(!$isExcept){
-				$newArray[] = $value;
+				$newArray[] = $currentValue;
 			}
-		}	
+		}
+		
+		// OrderBy処理を最後にまとめて実行（効率的）
+		if($isOrderBy && !empty($newArray)){
+			$this->_orderByOptimized($newArray, $orderKeys);
+		}
+		
 		if($isReduce){
-			array_pop($this->_functions);
 			return $reduceResult;
 		}
-		if(count($groups) != 0){
-			return $groups;
+		if($isGroupBy){
+			// グループ結果をソートして返す（連想配列から通常配列に変換）
+			return array_values($groups);
 		}
 
 		return $newArray;
@@ -332,11 +271,11 @@ class ArrayWrapper
 			throw new Exception("$keys is not array.");
 		}
 
+		$groupKeys = [];
 		foreach($keys as $key)
 		{
 			$groupKeys[] = array(self::KEY => $key,self::DESC => false);
 		}
-
 
 		$this->_functions[] = array(self::KEY => OperationType::GROUP_BY,"value" => $groupKeys);
 		return ArrayWrapper::Wrap($this->toVar());
@@ -377,7 +316,7 @@ class ArrayWrapper
 			throw new Exception("$rightKey is not array");
 		}
 
-		if(!count($leftKey) == count($rightKey)){
+		if(count($leftKey) != count($rightKey)){
 			throw new Exception("$leftKey count diferrent $rightKey count.");
 		}
 
@@ -389,18 +328,16 @@ class ArrayWrapper
 			throw new Exception("joinType is not JoinType");
 		}
 
-
 #end region
 
 		$leftKeys = array();
 		foreach ($leftKey as $value) {
-			array_push($leftKeys, array(self::KEY => $value,self::DESC => "false"));
+			$leftKeys[] = array(self::KEY => $value,self::DESC => false);
 		}
 		$rightKeys = array();
 		foreach ($rightKey as  $value) {
-			array_push($rightKeys, array(self::KEY => $value,self::DESC => "false"));
+			$rightKeys[] = array(self::KEY => $value,self::DESC => false);
 		}
-
 
 		$this->_functions[] = array(self::KEY => OperationType::JOIN,
 									"value" => array(
@@ -449,15 +386,15 @@ class ArrayWrapper
 	**/
 	public function average($targetKeyName)
 	{
-		$sumFunc = function($x,$y)
-				use($targetKeyName)
-				{
-					return $x + $y[$targetKeyName];
-				};
-
-		$value = $this->reduce($sumFunc);
-		$count = count($this->_source);
-		return $value / $count;
+		$sourceArray = $this->toVar();
+		$count = count($sourceArray);
+		if ($count == 0) return 0;
+		
+		$sum = 0;
+		foreach($sourceArray as $item) {
+			$sum += $item[$targetKeyName];
+		}
+		return $sum / $count;
 	}
 
 	/**
@@ -487,13 +424,9 @@ class ArrayWrapper
 		$newArray = array();
 		for ($i=0; $i < $loopMaxCount; $i++) { 
 			$newArray[]  = $map($leftArray[$i],$rightArray[$i]);
-
 		}
 
 		return ArrayWrapper::Wrap($newArray);
 	}
-
-
-
 }
 ?>
