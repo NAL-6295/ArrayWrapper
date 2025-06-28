@@ -1,60 +1,80 @@
 <?php
-require_once 'PHPUnit/Autoload.php';
-require_once 'ArrayWrapper.php';
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/../ArrayWrapper.php';
 
 use NAL_6295\Collections\ArrayWrapper;
 
-class ArrayWrapperHugeTest extends PHPUnit_Framework_TestCase
+/**
+ * Large dataset performance test for ArrayWrapper modernized code
+ */
+class ArrayWrapperHugeTest
 {
+	private array $targetSource = [];
+	private array $expected = [];
 
-	var $targetSource = array();
-	var $expected = array();
-	public function setUp()
+	public function setUp(): void
 	{
-		$this->targetSource = array();
-		$this->expected = array();
+		$this->targetSource = [];
+		$this->expected = [];
 		$count = 10000;
-		for ($i=0; $i < $count; $i++) { 
-			$value = array("key" => floor($i / 10) ,"key2" => $i,"value" => $i * $i);
-			if($i % 2 == 0)
-			{
-				array_push($this->targetSource ,$value);
-			}
-			else
-			{
-				array_splice($this->targetSource,0,0,array($value));				
+		
+		for ($i = 0; $i < $count; $i++) {
+			$value = ["key" => intval(floor($i / 10)), "key2" => $i, "value" => $i * $i];
+			if ($i % 2 == 0) {
+				array_push($this->targetSource, $value);
+			} else {
+				array_splice($this->targetSource, 0, 0, [$value]);
 			}
 		}
-		for ($i=0; $i < $count; $i++) { 
-			array_push($this->expected,array("key" => floor($i / 10) ,"key2" => $i,"value" => $i * $i));
+		
+		for ($i = 0; $i < $count; $i++) {
+			array_push($this->expected, ["key" => intval(floor($i / 10)), "key2" => $i, "value" => $i * $i]);
 		}
-						
-
 	}
 
-	public function testOrderByHugeData()
-	{		
-
-		$target = new ArrayWrapper($this->targetSource);
+	public function testOrderByHugeData(): void
+	{
+		echo "Testing orderBy with large dataset (10,000 items)...\n";
+		$start = microtime(true);
+		
+		        $target = ArrayWrapper::Wrap($this->targetSource);
 
 		$actual = $target
-				->orderBy(array(
-						array("key" => "key","desc" => false),
-						array("key" => "key2","desc" => false)
-						))
-				->toVar();
+			->orderBy([
+				["key" => "key", "desc" => false],
+				["key" => "key2", "desc" => false]
+			])
+			->toVar();
 
-		// $actual = $this->targetSource;
+		$end = microtime(true);
+		$executionTime = ($end - $start) * 1000; // Convert to milliseconds
 
-		// foreach ($actual as $row) {
-		//     $key[]  = $row['key'];
-		//     $key2[] = $row['key2'];
-		// }
-		// array_multisort($key, SORT_ASC, $key2, SORT_ASC, $actual);
-
-		$this->assertEquals(json_encode($this->expected),json_encode($actual));
-
+		if (json_encode($this->expected) === json_encode($actual)) {
+			echo "✅ testOrderByHugeData - PASSED\n";
+			echo "   Execution time: " . number_format($executionTime, 2) . " ms\n";
+			echo "   Items processed: " . count($actual) . "\n";
+		} else {
+			echo "❌ testOrderByHugeData - FAILED\n";
+			echo "   Expected " . count($this->expected) . " items, got " . count($actual) . " items\n";
+		}
 	}
 
+	public function runTest(): void
+	{
+		echo "\n=== ArrayWrapper Large Dataset Test - PHP 8.x Modern Version ===\n\n";
+		
+		echo "Setting up test data...\n";
+		$this->setUp();
+		
+		$this->testOrderByHugeData();
+		
+		echo "\n=== Performance Test Complete ===\n";
+	}
 }
+
+// Run performance test
+$testRunner = new ArrayWrapperHugeTest();
+$testRunner->runTest();
 ?>
